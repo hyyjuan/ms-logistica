@@ -205,3 +205,8 @@ ms-logistica/
 │   └── config/           RabbitMQConfig.java
 └── src/test/             EnvioServiceTest.java
 ```
+
+## Healthcheck e integraci�n
+- Ruta base: /api/v1/logistica
+- Healthcheck recomendado: /actuator/health
+
