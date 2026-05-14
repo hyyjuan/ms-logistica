@@ -1,22 +1,15 @@
-# ── Stage 1: Build ────────────────────────────────────────────────
-FROM maven:3.9.6-eclipse-temurin-17 AS build
+FROM maven:3.9.9-eclipse-temurin-21 AS build
 WORKDIR /app
 COPY pom.xml .
-# Descarga dependencias primero (mejor cache de capas)
-RUN mvn dependency:go-offline -B
-COPY src ./src
-RUN mvn clean package -DskipTests
+COPY .mvn .mvn
+COPY mvnw mvnw
+COPY mvnw.cmd mvnw.cmd
+RUN chmod +x mvnw || true
+COPY src src
+RUN ./mvnw -q -DskipTests package
 
-# ── Stage 2: Runtime ──────────────────────────────────────────────
-FROM eclipse-temurin:17-jre-alpine
+FROM eclipse-temurin:21-jre
 WORKDIR /app
-
-# Usuario no-root por seguridad
-RUN addgroup -S appgroup && adduser -S appuser -G appgroup
-USER appuser
-
-COPY --from=build /app/target/ms-logistica-1.0.0.jar app.jar
-
+COPY --from=build /app/target/*.jar app.jar
 EXPOSE 8084
-
-ENTRYPOINT ["java", "-jar", "app.jar"]
+ENTRYPOINT ["java","-jar","/app/app.jar"]
