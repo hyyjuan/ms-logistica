@@ -1,0 +1,74 @@
+version: '3.8'
+
+services:
+
+  # ── PostgreSQL exclusivo de ms-logistica ──────────────────────────
+  logistica-db:
+    image: postgres:15-alpine
+    container_name: logistica-db
+    environment:
+      POSTGRES_DB: logistica_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5435:5432"       # Puerto externo 5435 para no chocar con otros ms
+    volumes:
+      - logistica_data:/var/lib/postgresql/data
+    networks:
+      - innovatech-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ── RabbitMQ (compartido entre microservicios) ────────────────────
+  rabbitmq:
+    image: rabbitmq:3.12-management-alpine
+    container_name: rabbitmq
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    ports:
+      - "5672:5672"       # AMQP
+      - "15672:15672"     # Management UI → http://localhost:15672
+    networks:
+      - innovatech-network
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ── ms-logistica ──────────────────────────────────────────────────
+  ms-logistica:
+    build: .
+    container_name: ms-logistica
+    ports:
+      - "8084:8084"
+    environment:
+      DB_HOST: logistica-db
+      DB_PORT: 5432
+      DB_NAME: logistica_db
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: 5672
+      RABBITMQ_USER: guest
+      RABBITMQ_PASSWORD: guest
+    depends_on:
+      logistica-db:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - innovatech-network
+    restart: on-failure
+
+volumes:
+  logistica_data:
+
+networks:
+  innovatech-network:
+    name: innovatech-network
+    driver: bridge
