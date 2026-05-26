@@ -1,0 +1,22 @@
+spring:
+  datasource:
+    url: jdbc:postgresql://${LOGISTICA_POSTGRES_HOST}:${LOGISTICA_POSTGRES_PORT}/${LOGISTICA_POSTGRES_DATABASE}
+    username: ${LOGISTICA_POSTGRES_USERNAME}
+    password: ${LOGISTICA_POSTGRES_PASSWORD}
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: false
+  rabbitmq:
+    host: ${RABBITMQ_HOST}
+    port: ${RABBITMQ_PORT}
+    username: ${RABBITMQ_USERNAME}
+    password: ${RABBITMQ_PASSWORD}
+    listener:
+      simple:
+        default-requeue-rejected: false

@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
 
   # ── PostgreSQL exclusivo de ms-logistica ──────────────────────────
@@ -7,9 +5,9 @@ services:
     image: postgres:15-alpine
     container_name: logistica-db
     environment:
-      POSTGRES_DB: logistica_db
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: ${LOGISTICA_POSTGRES_DATABASE:?LOGISTICA_POSTGRES_DATABASE is required}
+      POSTGRES_USER: ${LOGISTICA_POSTGRES_USERNAME:?LOGISTICA_POSTGRES_USERNAME is required}
+      POSTGRES_PASSWORD: ${LOGISTICA_POSTGRES_PASSWORD:?LOGISTICA_POSTGRES_PASSWORD is required}
     ports:
       - "5435:5432"       # Puerto externo 5435 para no chocar con otros ms
     volumes:
@@ -17,7 +15,7 @@ services:
     networks:
       - innovatech-network
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      test: ["CMD-SHELL", "pg_isready -U ${LOGISTICA_POSTGRES_USERNAME} -d ${LOGISTICA_POSTGRES_DATABASE}"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -27,8 +25,8 @@ services:
     image: rabbitmq:3.12-management-alpine
     container_name: rabbitmq
     environment:
-      RABBITMQ_DEFAULT_USER: guest
-      RABBITMQ_DEFAULT_PASS: guest
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USERNAME:?RABBITMQ_USERNAME is required}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:?RABBITMQ_PASSWORD is required}
     ports:
       - "5672:5672"       # AMQP
       - "15672:15672"     # Management UI → http://localhost:15672
@@ -47,15 +45,16 @@ services:
     ports:
       - "8084:8084"
     environment:
-      DB_HOST: logistica-db
-      DB_PORT: 5432
-      DB_NAME: logistica_db
-      DB_USER: postgres
-      DB_PASSWORD: postgres
-      RABBITMQ_HOST: rabbitmq
-      RABBITMQ_PORT: 5672
-      RABBITMQ_USER: guest
-      RABBITMQ_PASSWORD: guest
+      LOGISTICA_POSTGRES_HOST: ${LOGISTICA_POSTGRES_HOST:-logistica-db}
+      LOGISTICA_POSTGRES_PORT: ${LOGISTICA_POSTGRES_PORT:-5432}
+      LOGISTICA_POSTGRES_DATABASE: ${LOGISTICA_POSTGRES_DATABASE:?LOGISTICA_POSTGRES_DATABASE is required}
+      LOGISTICA_POSTGRES_USERNAME: ${LOGISTICA_POSTGRES_USERNAME:?LOGISTICA_POSTGRES_USERNAME is required}
+      LOGISTICA_POSTGRES_PASSWORD: ${LOGISTICA_POSTGRES_PASSWORD:?LOGISTICA_POSTGRES_PASSWORD is required}
+      JWT_SECRET: ${JWT_SECRET}
+      RABBITMQ_HOST: ${RABBITMQ_HOST:-rabbitmq}
+      RABBITMQ_PORT: ${RABBITMQ_PORT:-5672}
+      RABBITMQ_USERNAME: ${RABBITMQ_USERNAME:?RABBITMQ_USERNAME is required}
+      RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD:?RABBITMQ_PASSWORD is required}
     depends_on:
       logistica-db:
         condition: service_healthy

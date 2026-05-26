@@ -157,15 +157,15 @@ IT-A3F9C21B
 
 | Variable            | Default       | DescripciÃ³n              |
 |---------------------|---------------|--------------------------|
-| `DB_HOST`           | `localhost`   | Host PostgreSQL           |
-| `DB_PORT`           | `5432`        | Puerto PostgreSQL          |
-| `DB_NAME`           | `logistica_db`| Nombre de la base         |
-| `DB_USER`           | `postgres`    | Usuario DB                |
-| `DB_PASSWORD`       | `postgres`    | ContraseÃ±a DB             |
+| `LOGISTICA_POSTGRES_HOST` | `localhost` | Host PostgreSQL |
+| `LOGISTICA_POSTGRES_PORT` | `5432` | Puerto PostgreSQL |
+| `LOGISTICA_POSTGRES_DATABASE` | `logistica_db` | Nombre de la base |
+| `LOGISTICA_POSTGRES_USERNAME` | `logistica_local` | Usuario DB |
+| `LOGISTICA_POSTGRES_PASSWORD` | `logistica_local_password` | Contraseña DB |
 | `RABBITMQ_HOST`     | `localhost`   | Host RabbitMQ             |
 | `RABBITMQ_PORT`     | `5672`        | Puerto RabbitMQ           |
-| `RABBITMQ_USER`     | `guest`       | Usuario RabbitMQ          |
-| `RABBITMQ_PASSWORD` | `guest`       | ContraseÃ±a RabbitMQ       |
+| `RABBITMQ_USERNAME` | `rabbit_local_user` | Usuario RabbitMQ |
+| `RABBITMQ_PASSWORD` | `rabbit_local_password` | Contraseña RabbitMQ |
 
 ---
 
@@ -209,4 +209,6 @@ ms-logistica/
 ## Healthcheck e integración
 - Ruta base: /api/v1/logistica
 - Healthcheck recomendado: /actuator/health
+
+
 
