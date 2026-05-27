@@ -1,16 +1,16 @@
 spring:
   datasource:
-    url: jdbc:postgresql://${LOGISTICA_POSTGRES_HOST}:${LOGISTICA_POSTGRES_PORT}/${LOGISTICA_POSTGRES_DATABASE}
-    username: ${LOGISTICA_POSTGRES_USERNAME}
-    password: ${LOGISTICA_POSTGRES_PASSWORD}
-    driver-class-name: org.postgresql.Driver
+    url: jdbc:mysql://${LOGISTICA_MYSQL_HOST}:${LOGISTICA_MYSQL_PORT}/${LOGISTICA_MYSQL_DATABASE}?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
+    username: ${LOGISTICA_MYSQL_USERNAME}
+    password: ${LOGISTICA_MYSQL_PASSWORD}
+    driver-class-name: com.mysql.cj.jdbc.Driver
   jpa:
     hibernate:
       ddl-auto: validate
     show-sql: false
     properties:
       hibernate:
-        dialect: org.hibernate.dialect.PostgreSQLDialect
+        dialect: org.hibernate.dialect.MySQLDialect
         format_sql: false
   rabbitmq:
     host: ${RABBITMQ_HOST}

@@ -4,7 +4,7 @@
 `ms-logistica` es el microservicio encargado de gestionar envios y tracking de pedidos dentro de InnovaTech. Expone operaciones REST para crear, consultar, actualizar y eliminar envios, y ademas consume eventos RabbitMQ asociados a pagos de pedidos.
 
 ## 2. Rol dentro de la arquitectura
-El servicio es consumido a traves del API Gateway en `/api/v1/logistica/**` y tambien por el BFF para componer vistas de tracking. Persiste informacion en PostgreSQL y consume eventos AMQP desde RabbitMQ.
+El servicio es consumido a traves del API Gateway en `/api/v1/logistica/**` y tambien por el BFF para componer vistas de tracking. Persiste informacion en MySQL y consume eventos AMQP desde RabbitMQ.
 
 Flujo simple:
 
@@ -14,7 +14,7 @@ Relaciones evidenciadas:
 
 - API Gateway enruta hacia `http://logistica:8084` en Docker.
 - BFF consulta este servicio mediante `MS_LOGISTICA_URL`.
-- El servicio usa PostgreSQL en desarrollo y produccion.
+- El servicio usa MySQL en desarrollo y produccion.
 - El servicio consume mensajes con `@RabbitListener` desde la cola configurada en `logistica.rabbitmq.queue`.
 
 ## 3. Stack tecnico
@@ -26,7 +26,7 @@ Relaciones evidenciadas:
 - Spring Security
 - JWT
 - Spring AMQP / RabbitMQ
-- PostgreSQL
+- MySQL
 - Spring Boot Actuator
 - Springdoc OpenAPI
 - Docker
@@ -48,11 +48,11 @@ Relaciones evidenciadas:
 | `SPRING_PROFILES_ACTIVE` | Perfil activo de Spring | `dev` | No | Cambia datasource, JPA y docs. |
 | `JWT_SECRET` | Secreto para validacion JWT | Sin valor por defecto | Si en entornos no locales | No debe versionarse. |
 | `APP_SECURITY_DOCS_PUBLIC` | Habilita documentacion publica | `false` | No | En produccion debe mantenerse controlado. |
-| `LOGISTICA_POSTGRES_HOST` | Host PostgreSQL | `localhost` en dev | Si | En Docker local del repo puede venir desde compose. |
-| `LOGISTICA_POSTGRES_PORT` | Puerto PostgreSQL | `5432` | No | Debe coincidir con la infraestructura. |
-| `LOGISTICA_POSTGRES_DATABASE` | Base de datos PostgreSQL | `logistica_db` | Si | Se evidencia estrategia de base dedicada. |
-| `LOGISTICA_POSTGRES_USERNAME` | Usuario PostgreSQL | `logistica_local` en dev | Si | No incluir secretos reales. |
-| `LOGISTICA_POSTGRES_PASSWORD` | Password PostgreSQL | `logistica_local_password` en dev | Si | No incluir secretos reales. |
+| `LOGISTICA_MYSQL_HOST` | Host MySQL | `localhost` en dev | Si | En Docker local del repo puede venir desde compose. |
+| `LOGISTICA_MYSQL_PORT` | Puerto MySQL | `3306` | No | Debe coincidir con la infraestructura. |
+| `LOGISTICA_MYSQL_DATABASE` | Base de datos MySQL | `logistica_db` | Si | Se evidencia estrategia de base dedicada. |
+| `LOGISTICA_MYSQL_USERNAME` | Usuario MySQL | `logistica_local` en dev | Si | No incluir secretos reales. |
+| `LOGISTICA_MYSQL_PASSWORD` | Password MySQL | `logistica_local_password` en dev | Si | No incluir secretos reales. |
 | `RABBITMQ_HOST` | Host RabbitMQ | `localhost` en dev | Si cuando RabbitMQ esta integrado | En prod se define por entorno. |
 | `RABBITMQ_PORT` | Puerto RabbitMQ | `5672` | No | Debe coincidir con la infraestructura. |
 | `RABBITMQ_USERNAME` | Usuario RabbitMQ | `rabbit_local_user` en dev | Si en prod | No usar `guest` en produccion. |
@@ -65,11 +65,11 @@ Relaciones evidenciadas:
 | `LOGISTICA_RABBITMQ_DLK` | Dead-letter routing key | `pedido.pagado.dead` | No | Debe alinearse con la topologia AMQP. |
 
 ## 6. Base de datos
-El servicio usa PostgreSQL tanto en desarrollo como en produccion, con parametros distintos por perfil.
+El servicio usa MySQL tanto en desarrollo como en produccion, con parametros distintos por perfil.
 
 | Elemento | Valor |
 |---|---|
-| Motor | PostgreSQL |
+| Motor | MySQL |
 | Base de datos | `logistica_db` |
 | Entidades | `Envio` |
 | Repositories | `EnvioRepository` |
@@ -109,7 +109,7 @@ Riesgos o pendientes:
 |---|---|---|---|---|
 | API Gateway | `ms-logistica` | HTTP | `http://logistica:8084` en Docker | Evidenciado |
 | BFF | `ms-logistica` | HTTP | `MS_LOGISTICA_URL` | Evidenciado |
-| `ms-logistica` | Base de datos propia | JDBC/JPA | `LOGISTICA_POSTGRES_*` | Evidenciado |
+| `ms-logistica` | Base de datos propia | JDBC/JPA | `LOGISTICA_MYSQL_*` | Evidenciado |
 | RabbitMQ | `ms-logistica` | AMQP consumo | `RABBITMQ_HOST`, `RABBITMQ_PORT`, `RABBITMQ_USERNAME`, `RABBITMQ_PASSWORD` | Evidenciado |
 
 ## 10. Eventos RabbitMQ
