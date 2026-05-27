@@ -1,214 +1,150 @@
-# ms-logistica — InnovaTech Consulting
+# ms-logistica
 
-Microservicio de seguimiento de pedidos para la plataforma **InnovaTech Consulting**.
-Encargado de generar códigos de tracking, gestionar estados de envío y consumir el evento `Pedido_Pagado` desde RabbitMQ.
+## 1. Descripcion general
+`ms-logistica` es el microservicio encargado de gestionar envios y tracking de pedidos dentro de InnovaTech. Expone operaciones REST para crear, consultar, actualizar y eliminar envios, y ademas consume eventos RabbitMQ asociados a pagos de pedidos.
 
----
+## 2. Rol dentro de la arquitectura
+El servicio es consumido a traves del API Gateway en `/api/v1/logistica/**` y tambien por el BFF para componer vistas de tracking. Persiste informacion en PostgreSQL y consume eventos AMQP desde RabbitMQ.
 
-## Stack
+Flujo simple:
 
-| Tecnología      | Uso                              |
-|-----------------|----------------------------------|
-| Spring Boot 3.2 | Framework principal              |
-| PostgreSQL 15   | Base de datos exclusiva (DB-per-Service) |
-| RabbitMQ 3.12   | Mensajería asíncrona             |
-| Docker          | Contenedorización                |
-| Lombok          | Reducción de boilerplate         |
+`Cliente/Frontend -> API Gateway -> ms-logistica -> Base de datos / RabbitMQ`
 
----
+Relaciones evidenciadas:
 
-## Levantar el proyecto
+- API Gateway enruta hacia `http://logistica:8084` en Docker.
+- BFF consulta este servicio mediante `MS_LOGISTICA_URL`.
+- El servicio usa PostgreSQL en desarrollo y produccion.
+- El servicio consume mensajes con `@RabbitListener` desde la cola configurada en `logistica.rabbitmq.queue`.
 
-### Con Docker Compose (recomendado)
+## 3. Stack tecnico
+- Java 21
+- Spring Boot 3.5.14
+- Maven Wrapper
+- Spring Web
+- Spring Data JPA
+- Spring Security
+- JWT
+- Spring AMQP / RabbitMQ
+- PostgreSQL
+- Spring Boot Actuator
+- Springdoc OpenAPI
+- Docker
 
-```bash
-# Construir y levantar todo (ms + postgres + rabbitmq)
-docker-compose up --build
+## 4. Puerto del servicio
 
-# En segundo plano
-docker-compose up --build -d
+| Concepto | Valor |
+|---|---|
+| Puerto esperado | 8084 |
+| Puerto configurado | `${SERVER_PORT:8084}` |
+| Archivo donde se define | `src/main/resources/application.yml`, `Dockerfile` |
+| Variable de entorno asociada | `SERVER_PORT` |
 
-# Ver logs
-docker-compose logs -f ms-logistica
+## 5. Variables de entorno
 
-# Detener
-docker-compose down
-```
+| Variable | Descripcion | Valor por defecto | Obligatoria | Riesgo/observacion |
+|---|---|---|---|---|
+| `SERVER_PORT` | Puerto HTTP del microservicio | `8084` | No | Debe mantenerse alineado con Gateway y Docker. |
+| `SPRING_PROFILES_ACTIVE` | Perfil activo de Spring | `dev` | No | Cambia datasource, JPA y docs. |
+| `JWT_SECRET` | Secreto para validacion JWT | Sin valor por defecto | Si en entornos no locales | No debe versionarse. |
+| `APP_SECURITY_DOCS_PUBLIC` | Habilita documentacion publica | `false` | No | En produccion debe mantenerse controlado. |
+| `LOGISTICA_POSTGRES_HOST` | Host PostgreSQL | `localhost` en dev | Si | En Docker local del repo puede venir desde compose. |
+| `LOGISTICA_POSTGRES_PORT` | Puerto PostgreSQL | `5432` | No | Debe coincidir con la infraestructura. |
+| `LOGISTICA_POSTGRES_DATABASE` | Base de datos PostgreSQL | `logistica_db` | Si | Se evidencia estrategia de base dedicada. |
+| `LOGISTICA_POSTGRES_USERNAME` | Usuario PostgreSQL | `logistica_local` en dev | Si | No incluir secretos reales. |
+| `LOGISTICA_POSTGRES_PASSWORD` | Password PostgreSQL | `logistica_local_password` en dev | Si | No incluir secretos reales. |
+| `RABBITMQ_HOST` | Host RabbitMQ | `localhost` en dev | Si cuando RabbitMQ esta integrado | En prod se define por entorno. |
+| `RABBITMQ_PORT` | Puerto RabbitMQ | `5672` | No | Debe coincidir con la infraestructura. |
+| `RABBITMQ_USERNAME` | Usuario RabbitMQ | `rabbit_local_user` en dev | Si en prod | No usar `guest` en produccion. |
+| `RABBITMQ_PASSWORD` | Password RabbitMQ | `rabbit_local_password` en dev | Si en prod | No incluir secretos reales. |
+| `LOGISTICA_RABBITMQ_EXCHANGE` | Exchange principal de pedidos pagados | `pedido.exchange` | No | Se evidencia como configurable. |
+| `LOGISTICA_RABBITMQ_QUEUE` | Cola principal de consumo | `pedido.pagado.queue` | No | Debe existir o ser declarada por la app. |
+| `LOGISTICA_RABBITMQ_ROUTING_KEY` | Routing key principal | `pedido.pagado` | No | Debe alinearse con el productor. |
+| `LOGISTICA_RABBITMQ_DLX` | Dead-letter exchange | `pedido.dlx` | No | Permite aislar mensajes fallidos. |
+| `LOGISTICA_RABBITMQ_DLQ` | Dead-letter queue | `pedido.pagado.dlq` | No | Util para diagnostico operativo. |
+| `LOGISTICA_RABBITMQ_DLK` | Dead-letter routing key | `pedido.pagado.dead` | No | Debe alinearse con la topologia AMQP. |
 
-### En local (sin Docker)
+## 6. Base de datos
+El servicio usa PostgreSQL tanto en desarrollo como en produccion, con parametros distintos por perfil.
 
-1. Tener PostgreSQL corriendo en `localhost:5432` con base de datos `logistica_db`
-2. Tener RabbitMQ corriendo en `localhost:5672`
-3. Ejecutar:
+| Elemento | Valor |
+|---|---|
+| Motor | PostgreSQL |
+| Base de datos | `logistica_db` |
+| Entidades | `Envio` |
+| Repositories | `EnvioRepository` |
+| ddl-auto | `update` en dev, `validate` en prod |
+| show-sql | `true` en dev, `false` en prod |
 
-```bash
-mvn spring-boot:run
-```
+Riesgos o pendientes:
 
----
+- En produccion el esquema debe existir previamente porque el servicio usa `validate`.
+- No se evidencian migraciones Flyway o Liquibase en este repositorio.
 
-## Endpoints REST
+## 7. Endpoints principales
 
-Base URL: `http://localhost:8084/api/v1/logistica`
+| Metodo | Endpoint | Descripcion | Auth requerida | Request | Response |
+|---|---|---|---|---|---|
+| `POST` | `/api/v1/logistica` | Crea un envio manualmente | Si | `EnvioRequestDTO` | `EnvioResponseDTO` |
+| `GET` | `/api/v1/logistica` | Lista todos los envios | Si | No aplica | `List<EnvioResponseDTO>` |
+| `GET` | `/api/v1/logistica/{id}` | Obtiene un envio por identificador | Si | No aplica | `EnvioResponseDTO` |
+| `GET` | `/api/v1/logistica/pedido/{pedidoId}` | Busca envio por pedido | Si | No aplica | `EnvioResponseDTO` |
+| `PUT` | `/api/v1/logistica/{id}` | Actualiza datos del envio | Si | `EnvioRequestDTO` | `EnvioResponseDTO` |
+| `PATCH` | `/api/v1/logistica/{id}/estado` | Actualiza estado del envio | Si | `ActualizarEstadoDTO` | `EnvioResponseDTO` |
+| `DELETE` | `/api/v1/logistica/{id}` | Elimina un envio | Si | No aplica | No evidenciado |
 
-| Método   | Ruta                       | Descripción                                 |
-|----------|----------------------------|---------------------------------------------|
-| `POST`   | `/`                        | Crear envío manualmente                     |
-| `GET`    | `/`                        | Listar todos los envíos                     |
-| `GET`    | `/{id}`                    | Obtener envío por ID                        |
-| `GET`    | `/pedido/{pedidoId}`       | Obtener tracking por pedido ← más usado     |
-| `PUT`    | `/{id}`                    | Actualizar datos del envío                  |
-| `PATCH`  | `/{id}/estado`             | Cambiar estado del envío                    |
-| `DELETE` | `/{id}`                    | Eliminar envío                              |
+## 8. Seguridad
+- Usa Spring Security: si.
+- Valida JWT: si.
+- Depende del Gateway: el flujo oficial es via Gateway, aunque el servicio tambien protege sus endpoints.
+- Endpoints publicos: `GET /actuator/health`, `GET /actuator/info`, Swagger/OpenAPI solo cuando `APP_SECURITY_DOCS_PUBLIC=true`.
+- Endpoints protegidos: los endpoints `/api/v1/logistica/**`.
+- Riesgos detectados:
+  - Si se expone directamente fuera de la red interna, el trafico podria evitar el Gateway aunque seguiria bajo JWT.
+  - La documentacion publica depende de variable y perfil.
 
----
+## 9. Integraciones
 
-## Estados del envío
+| Origen | Destino | Tipo | URL/variable | Estado |
+|---|---|---|---|---|
+| API Gateway | `ms-logistica` | HTTP | `http://logistica:8084` en Docker | Evidenciado |
+| BFF | `ms-logistica` | HTTP | `MS_LOGISTICA_URL` | Evidenciado |
+| `ms-logistica` | Base de datos propia | JDBC/JPA | `LOGISTICA_POSTGRES_*` | Evidenciado |
+| RabbitMQ | `ms-logistica` | AMQP consumo | `RABBITMQ_HOST`, `RABBITMQ_PORT`, `RABBITMQ_USERNAME`, `RABBITMQ_PASSWORD` | Evidenciado |
 
-```
-PENDIENTE → PREPARANDO → DESPACHADO → EN_TRANSITO → EN_REPARTO → ENTREGADO
-                                                               ↘ FALLIDO → DEVUELTO
-```
+## 10. Eventos RabbitMQ
 
-| Estado       | Descripción                                 |
-|--------------|---------------------------------------------|
-| `PENDIENTE`  | Pedido pagado, aún sin procesar             |
-| `PREPARANDO` | En bodega, empaquetando                     |
-| `DESPACHADO` | Salió del almacén                           |
-| `EN_TRANSITO`| En camino al destino                        |
-| `EN_REPARTO` | Con el repartidor, última milla             |
-| `ENTREGADO`  | Confirmación exitosa (registra fecha real)  |
-| `FALLIDO`    | Intento de entrega fallido                  |
-| `DEVUELTO`   | Paquete devuelto al origen                  |
+| Evento | Exchange | Routing key | Queue | Productor/Consumidor | Estado |
+|---|---|---|---|---|---|
+| `Pedido_Pagado` | `pedido.exchange` | `pedido.pagado` | `pedido.pagado.queue` | Consumidor | Evidenciado |
 
----
+Observaciones:
 
-## Ejemplos de uso
+- Se evidencia una DLQ configurada con `pedido.dlx`, `pedido.pagado.dlq` y `pedido.pagado.dead`.
+- El productor del evento no se evidencia dentro de este repositorio.
 
-### Crear envío manualmente
-
-```json
-POST /api/v1/logistica
-{
-  "pedidoId": 1,
-  "usuarioId": 5,
-  "nombreDestinatario": "Juan Vargas",
-  "direccionDestino": "Av. Providencia 1234",
-  "ciudadDestino": "Santiago",
-  "regionDestino": "Metropolitana",
-  "telefonoContacto": "+56912345678"
-}
-```
-
-### Cambiar estado
-
-```json
-PATCH /api/v1/logistica/1/estado
-{
-  "estado": "EN_TRANSITO",
-  "observaciones": "Salió desde bodega central"
-}
-```
-
-### Tracking por pedido
-
-```
-GET /api/v1/logistica/pedido/1
-```
-
----
-
-## Integración RabbitMQ
-
-El microservicio escucha la cola `pedido.pagado.queue`.
-
-Cuando ms-pedidos confirma un pago, publica un evento con esta estructura:
-
-```json
-{
-  "pedidoId": 1,
-  "usuarioId": 5,
-  "nombreDestinatario": "Juan Vargas",
-  "direccionDestino": "Av. Providencia 1234",
-  "ciudadDestino": "Santiago",
-  "regionDestino": "Metropolitana",
-  "telefonoContacto": "+56912345678",
-  "fechaPago": "2026-04-10T15:30:00"
-}
-```
-
-ms-logistica crea el envío automáticamente con estado `PENDIENTE` y genera el código de tracking (formato `IT-XXXXXXXX`).
-
----
-
-## Código de seguimiento
-
-Generado automáticamente con el formato:
-
-```
-IT-A3F9C21B
-```
-
-`IT` = InnovaTech + 8 caracteres hexadecimales en mayúsculas únicos por UUID.
-
----
-
-## Variables de entorno
-
-| Variable            | Default       | Descripción              |
-|---------------------|---------------|--------------------------|
-| `LOGISTICA_POSTGRES_HOST` | `localhost` | Host PostgreSQL |
-| `LOGISTICA_POSTGRES_PORT` | `5432` | Puerto PostgreSQL |
-| `LOGISTICA_POSTGRES_DATABASE` | `logistica_db` | Nombre de la base |
-| `LOGISTICA_POSTGRES_USERNAME` | `logistica_local` | Usuario DB |
-| `LOGISTICA_POSTGRES_PASSWORD` | `logistica_local_password` | Contrase�a DB |
-| `RABBITMQ_HOST`     | `localhost`   | Host RabbitMQ             |
-| `RABBITMQ_PORT`     | `5672`        | Puerto RabbitMQ           |
-| `RABBITMQ_USERNAME` | `rabbit_local_user` | Usuario RabbitMQ |
-| `RABBITMQ_PASSWORD` | `rabbit_local_password` | Contrase�a RabbitMQ |
-
----
-
-## Tests
+## 11. Ejecucion local
 
 ```bash
-mvn test
+./mvnw clean package
+./mvnw spring-boot:run
 ```
 
-Los tests unitarios cubren:
-- Creación exitosa de envío
-- Detección de duplicados (mismo pedidoId)
-- Creación desde evento RabbitMQ
-- Listar y buscar por ID
-- Actualización de estado (incluyendo registro de fecha real al marcar ENTREGADO)
-- Eliminación
+Perfil de produccion:
 
----
-
-## Estructura del proyecto
-
-```
-ms-logistica/
-├── src/main/java/com/innovatech/logistica/
-│   ├── MsLogisticaApplication.java
-│   ├── controller/       EnvioController.java
-│   ├── service/          EnvioService.java / EnvioServiceImpl.java
-│   ├── repository/       EnvioRepository.java
-│   ├── model/
-│   │   ├── entity/       Envio.java
-│   │   └── enums/        EstadoEnvio.java
-│   ├── dto/              EnvioRequestDTO / ResponseDTO / ActualizarEstadoDTO
-│   ├── messaging/
-│   │   ├── consumer/     PedidoPagadoConsumer.java
-│   │   └── event/        PedidoPagadoEvent.java
-│   ├── exception/        GlobalExceptionHandler + excepciones
-│   └── config/           RabbitMQConfig.java
-└── src/test/             EnvioServiceTest.java
+```bash
+./mvnw spring-boot:run -Dspring-boot.run.profiles=prod
 ```
 
-## Healthcheck e integraci�n
-- Ruta base: /api/v1/logistica
-- Healthcheck recomendado: /actuator/health
+Con Docker Compose local del repositorio:
 
+```bash
+docker compose up --build
+```
 
+Puntos utiles:
 
+- Swagger UI: `http://localhost:8084/swagger-ui.html` cuando la documentacion publica esta habilitada.
+- OpenAPI: `http://localhost:8084/api-docs`
+- Health: `http://localhost:8084/actuator/health`
+- Info: `http://localhost:8084/actuator/info`
