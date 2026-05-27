@@ -1,5 +1,15 @@
 # ms-logistica
 
+## Estado de evidencia
+
+| Categoria | Estado |
+|---|---|
+| Implementado | CRUD de envios, consumidor `Pedido_Pagado`, DLQ, Actuator |
+| Configurado | MySQL, RabbitMQ, perfiles, Docker |
+| Validado | compilacion |
+| Pendiente de validacion runtime | consumo real del evento desde Pedidos y stack completo |
+| No evidenciado | trazabilidad AMQP extremo a extremo validada |
+
 ## 1. Descripcion general
 `ms-logistica` es el microservicio encargado de gestionar envios y tracking de pedidos dentro de InnovaTech. Expone operaciones REST para crear, consultar, actualizar y eliminar envios, y ademas consume eventos RabbitMQ asociados a pagos de pedidos.
 
