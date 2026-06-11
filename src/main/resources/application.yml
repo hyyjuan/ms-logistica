@@ -1,0 +1,39 @@
+server:
+  port: ${SERVER_PORT:8084}
+
+logging:
+  pattern:
+    level: "%5p [requestId=%X{requestId:-na}]"
+
+spring:
+  profiles:
+    default: dev
+  application:
+    name: ms-logistica
+
+
+jwt:
+  secret: ${JWT_SECRET}
+
+app:
+  security:
+    docs-public: ${APP_SECURITY_DOCS_PUBLIC:false}
+
+logistica:
+  rabbitmq:
+    queue: pedido.pagado.queue
+    exchange: pedido.exchange
+    routing-key: pedido.pagado
+    dead-letter:
+      exchange: pedido.dlx
+      queue: pedido.pagado.dlq
+      routing-key: pedido.pagado.dead
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: when-authorized
