@@ -4,7 +4,7 @@ COPY pom.xml .
 COPY .mvn .mvn
 COPY mvnw mvnw
 COPY mvnw.cmd mvnw.cmd
-RUN chmod +x mvnw || true
+RUN chmod +x mvnw && sed -i 's/\r$//' mvnw
 COPY src src
 RUN ./mvnw -q -Dmaven.test.skip=true package
 
