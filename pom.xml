@@ -81,6 +81,13 @@
             <optional>true</optional>
         </dependency>
 
+        <!-- H2 para perfil AWS (base de datos en memoria) -->
+        <dependency>
+            <groupId>com.h2database</groupId>
+            <artifactId>h2</artifactId>
+            <scope>runtime</scope>
+        </dependency>
+
         <!-- Tests -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
