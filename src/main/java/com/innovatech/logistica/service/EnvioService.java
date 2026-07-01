@@ -15,6 +15,8 @@ public interface EnvioService {
 
     List<EnvioResponseDTO> listarEnvios();
 
+    List<EnvioResponseDTO> listarEnviosPorUsuario(Long usuarioId);
+
     EnvioResponseDTO obtenerPorId(Long id);
 
     EnvioResponseDTO obtenerPorPedidoId(Long pedidoId);

@@ -19,6 +19,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -35,9 +36,22 @@ public class EnvioController {
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
+    @PostMapping("/envios")
+    public ResponseEntity<EnvioResponseDTO> crearEnvioAlias(@Valid @RequestBody EnvioRequestDTO request) {
+        return crearEnvio(request);
+    }
+
     @GetMapping
-    public ResponseEntity<List<EnvioResponseDTO>> listarEnvios() {
+    public ResponseEntity<List<EnvioResponseDTO>> listarEnvios(@RequestParam(required = false) Long usuarioId) {
+        if (usuarioId != null) {
+            return ResponseEntity.ok(envioService.listarEnviosPorUsuario(usuarioId));
+        }
         return ResponseEntity.ok(envioService.listarEnvios());
+    }
+
+    @GetMapping("/envios")
+    public ResponseEntity<List<EnvioResponseDTO>> listarEnviosAlias(@RequestParam(required = false) Long usuarioId) {
+        return listarEnvios(usuarioId);
     }
 
     @GetMapping("/{id}")
@@ -46,10 +60,22 @@ public class EnvioController {
         return ResponseEntity.ok(envioService.obtenerPorId(id));
     }
 
+    @GetMapping("/envios/{id}")
+    public ResponseEntity<EnvioResponseDTO> obtenerPorIdAlias(
+            @PathVariable @Positive(message = "El id debe ser mayor a cero") Long id) {
+        return obtenerPorId(id);
+    }
+
     @GetMapping("/pedido/{pedidoId}")
     public ResponseEntity<EnvioResponseDTO> obtenerPorPedidoId(
             @PathVariable @Positive(message = "El pedidoId debe ser mayor a cero") Long pedidoId) {
         return ResponseEntity.ok(envioService.obtenerPorPedidoId(pedidoId));
+    }
+
+    @GetMapping("/envios/pedido/{pedidoId}")
+    public ResponseEntity<EnvioResponseDTO> obtenerPorPedidoIdAlias(
+            @PathVariable @Positive(message = "El pedidoId debe ser mayor a cero") Long pedidoId) {
+        return obtenerPorPedidoId(pedidoId);
     }
 
     @PutMapping("/{id}")
@@ -64,6 +90,13 @@ public class EnvioController {
             @PathVariable @Positive(message = "El id debe ser mayor a cero") Long id,
             @Valid @RequestBody ActualizarEstadoDTO dto) {
         return ResponseEntity.ok(envioService.actualizarEstado(id, dto));
+    }
+
+    @PatchMapping("/envios/{id}/estado")
+    public ResponseEntity<EnvioResponseDTO> actualizarEstadoAlias(
+            @PathVariable @Positive(message = "El id debe ser mayor a cero") Long id,
+            @Valid @RequestBody ActualizarEstadoDTO dto) {
+        return actualizarEstado(id, dto);
     }
 
     @DeleteMapping("/{id}")

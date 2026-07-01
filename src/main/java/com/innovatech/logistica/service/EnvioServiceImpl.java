@@ -92,6 +92,15 @@ public class EnvioServiceImpl implements EnvioService {
                 .collect(Collectors.toList());
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public List<EnvioResponseDTO> listarEnviosPorUsuario(Long usuarioId) {
+        return envioRepository.findByUsuarioId(usuarioId)
+                .stream()
+                .map(this::toDTO)
+                .collect(Collectors.toList());
+    }
+
     // ── GET /api/v1/logistica/{id} ─────────────────────────────────
     @Override
     @Transactional(readOnly = true)
