@@ -1,8 +1,8 @@
 spring:
   datasource:
-    url: jdbc:mysql://${LOGISTICA_MYSQL_HOST}:${LOGISTICA_MYSQL_PORT}/${LOGISTICA_MYSQL_DATABASE}?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
-    username: ${LOGISTICA_MYSQL_USERNAME}
-    password: ${LOGISTICA_MYSQL_PASSWORD}
+    url: jdbc:mysql://${DB_HOST}:${DB_PORT}/${DB_NAME}?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
     driver-class-name: com.mysql.cj.jdbc.Driver
   jpa:
     hibernate:

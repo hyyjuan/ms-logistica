@@ -7,13 +7,13 @@ logging:
 
 spring:
   profiles:
-    default: dev
+    default: local
   application:
     name: ms-logistica
 
 
 jwt:
-  secret: ${JWT_SECRET}
+  secret: ${JWT_SECRET:change-me-jwt-secret-min-32-chars}
 
 app:
   security:
