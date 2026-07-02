@@ -1,0 +1,70 @@
+services:
+  mysql-logistica:
+    image: mysql:8.0
+    container_name: mysql-logistica
+    environment:
+      MYSQL_ROOT_PASSWORD: ${LOGISTICA_MYSQL_PASSWORD:?LOGISTICA_MYSQL_PASSWORD is required}
+      MYSQL_DATABASE: ${LOGISTICA_MYSQL_DATABASE:?LOGISTICA_MYSQL_DATABASE is required}
+      MYSQL_USER: ${LOGISTICA_MYSQL_USERNAME:?LOGISTICA_MYSQL_USERNAME is required}
+      MYSQL_PASSWORD: ${LOGISTICA_MYSQL_PASSWORD:?LOGISTICA_MYSQL_PASSWORD is required}
+    ports:
+      - "3307:3306"
+    volumes:
+      - logistica_data:/var/lib/mysql
+    networks:
+      - innovatech-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-p${LOGISTICA_MYSQL_PASSWORD}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  rabbitmq:
+    image: rabbitmq:3.12-management-alpine
+    container_name: rabbitmq
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USERNAME:?RABBITMQ_USERNAME is required}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:?RABBITMQ_PASSWORD is required}
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    networks:
+      - innovatech-network
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  ms-logistica:
+    build: .
+    container_name: ms-logistica
+    ports:
+      - "8084:8084"
+    environment:
+      LOGISTICA_MYSQL_HOST: ${LOGISTICA_MYSQL_HOST:-mysql-logistica}
+      LOGISTICA_MYSQL_PORT: ${LOGISTICA_MYSQL_PORT:-3306}
+      LOGISTICA_MYSQL_DATABASE: ${LOGISTICA_MYSQL_DATABASE:?LOGISTICA_MYSQL_DATABASE is required}
+      LOGISTICA_MYSQL_USERNAME: ${LOGISTICA_MYSQL_USERNAME:?LOGISTICA_MYSQL_USERNAME is required}
+      LOGISTICA_MYSQL_PASSWORD: ${LOGISTICA_MYSQL_PASSWORD:?LOGISTICA_MYSQL_PASSWORD is required}
+      JWT_SECRET: ${JWT_SECRET}
+      RABBITMQ_HOST: ${RABBITMQ_HOST:-rabbitmq}
+      RABBITMQ_PORT: ${RABBITMQ_PORT:-5672}
+      RABBITMQ_USERNAME: ${RABBITMQ_USERNAME:?RABBITMQ_USERNAME is required}
+      RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD:?RABBITMQ_PASSWORD is required}
+    depends_on:
+      mysql-logistica:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - innovatech-network
+    restart: on-failure
+
+volumes:
+  logistica_data:
+
+networks:
+  innovatech-network:
+    name: innovatech-network
+    driver: bridge
